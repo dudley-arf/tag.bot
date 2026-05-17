@@ -15,17 +15,27 @@ export interface JsonDatabaseConfig {
 export class JsonKeyValueDatabase implements KeyValueDatabase {
 	private config: JsonDatabaseConfig
 	private data: Record<string, string>
+	private initialized: boolean
 
 	constructor(config: JsonDatabaseConfig) {
 		this.config = config
 		this.data = {}
+		this.initialized = false
 	}
     async get(key: string): Promise<string | null> {
-		throw new Error('Not implemented')
+		if (!this.initialized) {
+			throw new Error('Database not initialized. Call initialize() first.')
+		}
+		return this.data[key] ?? null
 	}
 
 	async set(key: string, value: string): Promise<void> {
-		throw new Error('Not implemented')
+		if (!this.initialized) {
+			throw new Error('Database not initialized. Call initialize() first.')
+		}
+		this.data[key] = value
+		const filePath = resolve(this.config.filePath)
+		await writeFile(filePath, JSON.stringify(this.data, null, 2))
 	}
 
 	async initialize(): Promise<void> {
@@ -40,6 +50,8 @@ export class JsonKeyValueDatabase implements KeyValueDatabase {
 			this.data = {}
 			await writeFile(filePath, JSON.stringify(this.data, null, 2))
 		}
+
+		this.initialized = true
 	}
 
 	async has_initialize(): Promise<boolean> {
