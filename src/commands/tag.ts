@@ -24,6 +24,20 @@ export function setupTagCommand(app: AppWithDatabase) {
 		await command.respond.message({ text: `Created ${key}=${value}` })
 	})
 
+	app.on('/remove_tag', async (command) => {
+		if (command.user_id !== process.env.BOT_OWNER_USER_ID) {
+			return command.respond.message({ text: 'Only the bot owner can remove tags', ephemeral: true })
+		}
+
+		const text = (command.text || '').trim()
+		if (!text) {
+			return command.respond.message({ text: 'usage: `/remove_tag <key>`', ephemeral: true })
+		}
+
+		await app.database.delete(text)
+		await command.respond.message({ text: `Removed ${text}` })
+	})
+
 	app.on('/tag', async (command) => {
 		const text = (command.text || '').trim()
 		if (!text) {

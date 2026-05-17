@@ -6,6 +6,7 @@ export interface KeyValueDatabase {
 	initialize(): Promise<void>
 	get(key: string): Promise<string | null>
 	set(key: string, value: string): Promise<void>
+	delete(key: string): Promise<void>
 }
 
 export interface JsonDatabaseConfig {
@@ -34,6 +35,15 @@ export class JsonKeyValueDatabase implements KeyValueDatabase {
 			throw new Error('Database not initialized. Call initialize() first.')
 		}
 		this.data[key] = value
+		const filePath = resolve(this.config.filePath)
+		await writeFile(filePath, JSON.stringify(this.data, null, 2))
+	}
+
+	async delete(key: string): Promise<void> {
+		if (!this.initialized) {
+			throw new Error('Database not initialized. Call initialize() first.')
+		}
+		delete this.data[key]
 		const filePath = resolve(this.config.filePath)
 		await writeFile(filePath, JSON.stringify(this.data, null, 2))
 	}
