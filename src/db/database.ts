@@ -1,11 +1,16 @@
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { dirname, resolve } from 'path'
 
+export interface TagEntry {
+	value: string
+	owner: string
+}
+
 export interface KeyValueDatabase {
     has_initialize() : Promise<boolean>
 	initialize(): Promise<void>
-	get(key: string): Promise<string | null>
-	set(key: string, value: string): Promise<void>
+	get(key: string): Promise<TagEntry | null>
+	set(key: string, value: string, owner: string): Promise<void>
 	delete(key: string): Promise<void>
 }
 
@@ -15,7 +20,7 @@ export interface JsonDatabaseConfig {
 
 export class JsonKeyValueDatabase implements KeyValueDatabase {
 	private config: JsonDatabaseConfig
-	private data: Record<string, string>
+	private data: Record<string, TagEntry>
 	private initialized: boolean
 
 	constructor(config: JsonDatabaseConfig) {
@@ -23,18 +28,18 @@ export class JsonKeyValueDatabase implements KeyValueDatabase {
 		this.data = {}
 		this.initialized = false
 	}
-    async get(key: string): Promise<string | null> {
+    async get(key: string): Promise<TagEntry | null> {
 		if (!this.initialized) {
 			throw new Error('Database not initialized. Call initialize() first.')
 		}
 		return this.data[key] ?? null
 	}
 
-	async set(key: string, value: string): Promise<void> {
+	async set(key: string, value: string, owner: string): Promise<void> {
 		if (!this.initialized) {
 			throw new Error('Database not initialized. Call initialize() first.')
 		}
-		this.data[key] = value
+		this.data[key] = { value, owner }
 		const filePath = resolve(this.config.filePath)
 		await writeFile(filePath, JSON.stringify(this.data, null, 2))
 	}

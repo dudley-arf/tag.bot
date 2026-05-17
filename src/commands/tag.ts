@@ -20,7 +20,7 @@ export function setupTagCommand(app: AppWithDatabase) {
 			return command.respond.message({ text: 'Invalid value. Usage: `/create_tag <key> <value>`', ephemeral: true })
 		}
 
-		await app.database.set(key, value)
+		await app.database.set(key, value, command.user_id!)
 		await command.respond.message({ text: `Created ${key}=${value}` })
 	})
 
@@ -43,7 +43,11 @@ export function setupTagCommand(app: AppWithDatabase) {
 		if (!text) {
 			return command.respond.message({ text: 'usage: `/get_tag <key>`', ephemeral: true })
 		}
-		const value = await app.database.get(text)
-		await command.respond.message({ text: `Found: ${value}` })
+		const entry = await app.database.get(text)
+		if (!entry) {
+			await command.respond.message({ text: `Not found: ${text}` })
+		} else {
+			await command.respond.message({ text: `${text}=${entry.value}` })
+		}
 	})
 }
