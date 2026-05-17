@@ -1,0 +1,51 @@
+{
+    "display_information": {
+        "name": "Tag Bot"
+    },
+    "features": {
+        "bot_user": {
+            "display_name": "Tag Bot",
+            "always_online": false
+        },
+        "slash_commands": [
+            {
+                "command": "/create_tag",
+                "description": "Create a new tag",
+                "usage_hint": "/create_tag <key> <value>",
+                "should_escape": true
+            },
+            {
+                "command": "/remove_tag",
+                "description": "[ADMIN] remove tag",
+                "usage_hint": "/remove_tag <key>",
+                "should_escape": true
+            },
+            {
+                "command": "/tag",
+                "description": "Get tag content",
+                "usage_hint": "/tag <key>",
+                "should_escape": true
+            }
+        ]
+    },
+    "oauth_config": {
+        "scopes": {
+            "bot": [
+                "chat:write",
+                "users.profile:read",
+                "users:read",
+                "commands"
+            ]
+        },
+        "pkce_enabled": false
+    },
+    "settings": {
+        "interactivity": {
+            "is_enabled": true
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": true,
+        "token_rotation_enabled": false,
+        "is_mcp_enabled": false
+    }
+}
