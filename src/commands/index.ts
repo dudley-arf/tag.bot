@@ -1,8 +1,8 @@
 import type { AppWithDatabase } from '../app.ts'
-import { setupMessageHandler } from './message.ts'
+// import { setupMessageHandler } from './message.ts'
 import { setupTagCommand } from './tag.ts'
 
 export function registerCommands(app: AppWithDatabase) {
-	setupMessageHandler(app)
+	// setupMessageHandler(app)
 	setupTagCommand(app)
 }
