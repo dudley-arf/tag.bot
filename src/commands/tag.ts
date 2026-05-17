@@ -1,9 +1,35 @@
-import type { App } from 'slack.ts'
+import type { AppWithDatabase } from '../app.ts'
 
-export function setupTagCommand(app: App) {
+export function setupTagCommand(app: AppWithDatabase) {
+	app.on('/create_tag', async (command) => {
+		const text = (command.text || '').trim()
+		if (!text) {
+			return command.respond.message({ text: 'usage: `/create_tag <key> <value>`', ephemeral: true })
+		}
+
+		const [first, ...rest] = text.split(' ')
+
+		if (typeof first === 'undefined' || first.trim() === '') {
+			return command.respond.message({ text: 'Invalid key. Usage: `/create_tag <key> <value>`', ephemeral: true })
+		}
+
+		const key = first
+		const value = rest.join(' ')
+
+		if (value.trim() === '') {
+			return command.respond.message({ text: 'Invalid value. Usage: `/create_tag <key> <value>`', ephemeral: true })
+		}
+
+		await app.database.set(key, value)
+		await command.respond.message({ text: `Created ${key}=${value}` })
+	})
+
 	app.on('/tag', async (command) => {
-		await command.respond.message({
-			text: `Tag received: "${command.text}"`,
-		})
+		const text = (command.text || '').trim()
+		if (!text) {
+			return command.respond.message({ text: 'usage: `/tag <key>`', ephemeral: true })
+		}
+		const value = await app.database.get(text)
+		await command.respond.message({ text: `Found: ${value}` })
 	})
 }
