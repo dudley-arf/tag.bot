@@ -9,21 +9,9 @@
         },
         "slash_commands": [
             {
-                "command": "/create_tag",
+                "command": "/t",
                 "description": "Create a new tag",
-                "usage_hint": "/create_tag <key> <value>",
-                "should_escape": true
-            },
-            {
-                "command": "/remove_tag",
-                "description": "[ADMIN] remove tag",
-                "usage_hint": "/remove_tag <key>",
-                "should_escape": true
-            },
-            {
-                "command": "/get_tag",
-                "description": "Get tag content",
-                "usage_hint": "/get_tag <key>",
+                "usage_hint": "/t [create | rm | remove]? <key> <value>?",
                 "should_escape": true
             }
         ]
