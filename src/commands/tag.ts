@@ -38,10 +38,10 @@ export function setupTagCommand(app: AppWithDatabase) {
 		await command.respond.message({ text: `Removed ${text}` })
 	})
 
-	app.on('/tag', async (command) => {
+	app.on('/get_tag', async (command) => {
 		const text = (command.text || '').trim()
 		if (!text) {
-			return command.respond.message({ text: 'usage: `/tag <key>`', ephemeral: true })
+			return command.respond.message({ text: 'usage: `/get_tag <key>`', ephemeral: true })
 		}
 		const value = await app.database.get(text)
 		await command.respond.message({ text: `Found: ${value}` })

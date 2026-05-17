@@ -21,9 +21,9 @@
                 "should_escape": true
             },
             {
-                "command": "/tag",
+                "command": "/get_tag",
                 "description": "Get tag content",
-                "usage_hint": "/tag <key>",
+                "usage_hint": "/get_tag <key>",
                 "should_escape": true
             }
         ]
