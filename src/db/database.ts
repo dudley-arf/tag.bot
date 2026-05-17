@@ -1,3 +1,6 @@
+import { readFile, writeFile, mkdir } from 'fs/promises'
+import { dirname, resolve } from 'path'
+
 export interface KeyValueDatabase {
     has_initialize() : Promise<boolean>
 	initialize(): Promise<void>
@@ -26,10 +29,26 @@ export class JsonKeyValueDatabase implements KeyValueDatabase {
 	}
 
 	async initialize(): Promise<void> {
-		throw new Error('Not implemented')
+		const filePath = resolve(this.config.filePath)
+		const dirPath = dirname(filePath)
+
+		try {
+			const content = await readFile(filePath, 'utf-8')
+			this.data = JSON.parse(content)
+		} catch {
+			await mkdir(dirPath, { recursive: true })
+			this.data = {}
+			await writeFile(filePath, JSON.stringify(this.data, null, 2))
+		}
 	}
 
-    async has_initialize() : Promise<boolean> {
-        throw new Error("Not implemented");
-    }
+	async has_initialize(): Promise<boolean> {
+		try {
+			const filePath = resolve(this.config.filePath)
+			await readFile(filePath, 'utf-8')
+			return true
+		} catch {
+			return false
+		}
+	}
 }
