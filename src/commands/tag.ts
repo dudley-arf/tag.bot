@@ -89,6 +89,7 @@ async function handleGetTag(app: AppWithDatabase, command: SlashCommandInstance,
 		return command.respond.message({ text: `Not found: ${key}` })
 	}
 
+	await app.database.incrementCount(key)
 	const resolvedValue = resolveVariables(entry.value, command)
 	return command.respond.message({ blocks: blocks(section(mrkdwn(resolvedValue))) })
 }
@@ -167,8 +168,9 @@ async function handleInfoTag(app: AppWithDatabase, command: SlashCommandInstance
 
 	const creator = entry.owner || 'unknown'
 	const raw = entry.value
+	const count = entry.count ?? 0
 	return command.respond.message({
-		text: `Tag: ${key}\nCreator: ${creator}\nRaw:\n\`\`\`\n${raw}\n\`\`\``,
+		text: `Tag: ${key}\nCreator: ${creator}\nCalled Count: ${count}\nRaw:\n\`\`\`\n${raw}\n\`\`\``,
 	})
 }
 

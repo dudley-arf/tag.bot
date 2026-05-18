@@ -4,6 +4,7 @@ import { dirname, resolve } from 'path'
 export interface TagEntry {
 	value: string
 	owner: string
+	count: number
 }
 
 export interface KeyValueDatabase {
@@ -12,7 +13,8 @@ export interface KeyValueDatabase {
 	get(key: string): Promise<TagEntry | null>
 	set(key: string, value: string, owner: string): Promise<void>
 	delete(key: string): Promise<void>
-    listByOwner(userId: string): Promise<string[]>
+	listByOwner(userId: string): Promise<string[]>
+	incrementCount(key: string): Promise<void>
 }
 
 export interface JsonDatabaseConfig {
@@ -40,7 +42,9 @@ export class JsonKeyValueDatabase implements KeyValueDatabase {
 		if (!this.initialized) {
 			throw new Error('Database not initialized. Call initialize() first.')
 		}
-		this.data[key] = { value, owner }
+		const existing = this.data[key]
+		const count = existing?.count ?? 0
+		this.data[key] = { value, owner, count }
 		const filePath = resolve(this.config.filePath)
 		await writeFile(filePath, JSON.stringify(this.data, null, 2))
 	}
@@ -50,6 +54,19 @@ export class JsonKeyValueDatabase implements KeyValueDatabase {
 			throw new Error('Database not initialized. Call initialize() first.')
 		}
 		delete this.data[key]
+		const filePath = resolve(this.config.filePath)
+		await writeFile(filePath, JSON.stringify(this.data, null, 2))
+	}
+
+	async incrementCount(key: string): Promise<void> {
+		if (!this.initialized) {
+			throw new Error('Database not initialized. Call initialize() first.')
+		}
+		const entry = this.data[key]
+		if (!entry) {
+			return 
+		}
+		entry.count = (entry.count ?? 0) + 1
 		const filePath = resolve(this.config.filePath)
 		await writeFile(filePath, JSON.stringify(this.data, null, 2))
 	}
