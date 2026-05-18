@@ -20,6 +20,17 @@ function checkBlacklist(content: string) {
 	return blacklistPatterns.some((pattern) => pattern.test(content))
 }
 
+function resolveVariable(name: string): string {
+	if (name === 'DATE') {
+		return new Date().toISOString()
+	}
+	return `{{${name}}}`
+}
+
+function resolveVariables(content: string): string {
+	return content.replace(/\{\{(\w+)\}\}/g, (match, name) => resolveVariable(name))
+}
+
 function getUsageText() {
 	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove'
 }
@@ -50,8 +61,13 @@ async function handleGetTag(app: AppWithDatabase, command: SlashCommandInstance,
 	}
 
 	const entry = await app.database.get(key)
+	if (!entry) {
+		return command.respond.message({ text: `Not found: ${key}` })
+	}
+
+	const resolvedValue = resolveVariables(entry.value)
 	return command.respond.message({
-		text: entry ? `${key}=${entry.value}` : `Not found: ${key}`,
+		text: `${resolvedValue}`,
 	})
 }
 
