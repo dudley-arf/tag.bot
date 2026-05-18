@@ -1,4 +1,4 @@
-import { App, blocks, section, divider, button, input, plainTextInput, R } from 'slack.ts'
+import { App, blocks, section, divider, button, input, plainTextInput, actions, R } from 'slack.ts'
 import { JsonKeyValueDatabase, type KeyValueDatabase } from './db/database.ts'
 
 export interface AppWithDatabase extends App {
@@ -33,6 +33,7 @@ export function createApp() {
 			type: 'home',
 			blocks: blocks(
 				section(`You have ${totalTags} personal tags. Total accesses: ${totalAccesses}.`),
+				actions(button('Add Tag').id('add_tag_from_home')),
 				divider(),
 				...tagBlocks,
 			),
@@ -64,6 +65,30 @@ export function createApp() {
 		}
 
 		await app.database.set(key, submittedValue, entry.owner)
+	})
+
+	app.on('action.add_tag_from_home', async (action) => {
+		const modal = await action.respond.modal({
+			type: 'modal',
+			callback_id: 'create_tag_home',
+			title: { type: 'plain_text', text: 'Create Tag' },
+			submit: { type: 'plain_text', text: 'Create' },
+			blocks: blocks(
+				section('Please enter your new tag details below.'),
+				input(plainTextInput().id('key')).id('key').label('Tag Name'),
+				input(plainTextInput().id('value')).id('value').label('Tag Value'),
+			),
+		})
+
+		const submission = await modal.wait.timeout(300_000).submit()
+		const submittedKey = submission.values?.key?.key?.value ?? ''
+		const submittedValue = submission.values?.value?.value?.value ?? ''
+		if (!submittedKey.trim() || !submittedValue.trim()) {
+			return
+		}
+
+		const userId = action.event.user.id
+		await app.database.set(submittedKey, submittedValue, userId)
 	})
 
 	return app
