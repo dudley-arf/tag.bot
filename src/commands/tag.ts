@@ -3,6 +3,8 @@ import type { SlashCommandInstance } from 'slack.ts'
 
 
 
+const reservedKeywords = ['create', 'edit', 'rm', 'remove']
+
 function getUsageText() {
 	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove'
 }
@@ -44,6 +46,10 @@ async function handleCreateTag(app: AppWithDatabase, command: SlashCommandInstan
 
 	if (!key?.trim() || !value.trim()) {
 		return command.respond.message({ text: 'usage: `/t create <key> <value>`', ephemeral: true })
+	}
+
+	if (reservedKeywords.includes(key)) {
+		return command.respond.message({ text: 'That key is reserved and cannot be created', ephemeral: true })
 	}
 
 	await app.database.set(key, value, command.user_id!)
