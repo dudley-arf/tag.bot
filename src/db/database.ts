@@ -15,6 +15,7 @@ export interface KeyValueDatabase {
 	delete(key: string): Promise<void>
 	listByOwner(userId: string): Promise<string[]>
 	incrementCount(key: string): Promise<void>
+	getAll(): Promise<Record<string, TagEntry>>
 }
 
 export interface JsonDatabaseConfig {
@@ -56,6 +57,13 @@ export class JsonKeyValueDatabase implements KeyValueDatabase {
 		delete this.data[key]
 		const filePath = resolve(this.config.filePath)
 		await writeFile(filePath, JSON.stringify(this.data, null, 2))
+	}
+
+	async getAll(): Promise<Record<string, TagEntry>> {
+		if (!this.initialized) {
+			throw new Error('Database not initialized. Call initialize() first.')
+		}
+		return this.data
 	}
 
 	async incrementCount(key: string): Promise<void> {

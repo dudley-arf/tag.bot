@@ -1,5 +1,7 @@
 import type { AppWithDatabase } from '../app.ts'
 import { blocks, mrkdwn, section, type SlashCommandInstance } from 'slack.ts'
+import Fuse from 'fuse.js'
+import {type FuseResult} from 'fuse.js';
 
 
 
@@ -47,7 +49,7 @@ function resolveVariables(content: string, command: SlashCommandInstance): strin
 }
 
 function getUsageText() {
-	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove\n`/t info <key>` to show creator and raw content\n`/t list` to list all your tags'
+	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove\n`/t info <key>` to show creator and raw content\n`/t list` to list all your tags\n`/t find <query>` to search tags'
 }
 
 async function handleListTag(app: AppWithDatabase, command: SlashCommandInstance) {
@@ -174,6 +176,47 @@ async function handleInfoTag(app: AppWithDatabase, command: SlashCommandInstance
 	})
 }
 
+async function handleFindTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
+	const query = rest.join(' ').trim()
+	if (!query) {
+		return command.respond.message({ text: 'usage: `/t find <query>`', ephemeral: true })
+	}
+
+	const all = await app.database.getAll()
+	const items = Object.entries(all).map(([key, entry]) => ({ key, value: entry.value }))
+	const exactMatches = items.filter(item => 
+		item.key.toLowerCase().includes(query.toLowerCase()) || 
+		item.value.toLowerCase().includes(query.toLowerCase())
+	)
+
+	const fuse = new Fuse(items, { keys: ['key', 'value'], includeScore: true, threshold: 0.4 })
+	const fuzzyResults: FuseResult<{ key: string; value: string }>[] = fuse.search(query).sort((a, b) => (a.score ?? 0) - (b.score ?? 0))
+
+	const seen = new Set<string>()
+	const results = []
+
+	for (const item of exactMatches) {
+		if (!seen.has(item.key) && results.length < 10) {
+			results.push(item)
+			seen.add(item.key)
+		}
+	}
+
+	for (const result of fuzzyResults) {
+		if (!seen.has(result.item.key) && results.length < 10) {
+			results.push(result.item)
+			seen.add(result.item.key)
+		}
+	}
+
+	if (results.length === 0) {
+		return command.respond.message({ text: `No tags found for "${query}"` })
+	}
+
+	const lines = results.map(item => `• ${item.key} = ${item.value}`)
+	return command.respond.message({ text: `*Search results:*\n${lines.join('\n')}` })
+}
+
 export function setupTagCommand(app: AppWithDatabase) {
 	app.on('/t', async (command) => {
 		const text = (command.text || '').trim()
@@ -192,6 +235,10 @@ export function setupTagCommand(app: AppWithDatabase) {
 				return command.respond.message({ text: getUsageText(), ephemeral: true })
 			}
 			return handleGetTag(app, command, action)
+		}
+
+		if (action === 'find') {
+			return handleFindTag(app, command, rest)
 		}
 
 		if (action === 'list') {
