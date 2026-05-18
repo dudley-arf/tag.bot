@@ -1,5 +1,5 @@
 import type { AppWithDatabase } from '../app.ts'
-import type { SlashCommandInstance } from 'slack.ts'
+import { blocks, mrkdwn, section, type SlashCommandInstance } from 'slack.ts'
 
 
 
@@ -69,9 +69,7 @@ async function handleGetTag(app: AppWithDatabase, command: SlashCommandInstance,
 	}
 
 	const resolvedValue = resolveVariables(entry.value)
-	return command.respond.message({
-		text: `${resolvedValue}`,
-	})
+	return command.respond.message({ blocks: blocks(section(mrkdwn(resolvedValue))) })
 }
 
 async function handleCreateTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
