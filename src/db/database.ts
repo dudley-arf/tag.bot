@@ -12,6 +12,7 @@ export interface KeyValueDatabase {
 	get(key: string): Promise<TagEntry | null>
 	set(key: string, value: string, owner: string): Promise<void>
 	delete(key: string): Promise<void>
+    listByOwner(userId: string): Promise<string[]>
 }
 
 export interface JsonDatabaseConfig {
@@ -51,6 +52,19 @@ export class JsonKeyValueDatabase implements KeyValueDatabase {
 		delete this.data[key]
 		const filePath = resolve(this.config.filePath)
 		await writeFile(filePath, JSON.stringify(this.data, null, 2))
+	}
+
+	async listByOwner(userId: string): Promise<string[]> {
+		if (!this.initialized) {
+			throw new Error('Database not initialized. Call initialize() first.')
+		}
+		const keys: string[] = []
+		for (const [key, entry] of Object.entries(this.data)) {
+			if (entry.owner === userId) {
+				keys.push(key)
+			}
+		}
+		return keys
 	}
 
 	async initialize(): Promise<void> {

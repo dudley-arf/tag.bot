@@ -47,7 +47,16 @@ function resolveVariables(content: string, command: SlashCommandInstance): strin
 }
 
 function getUsageText() {
-	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove\n`/t info <key>` to show creator and raw content'
+	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove\n`/t info <key>` to show creator and raw content\n`/t list` to list all your tags'
+}
+
+async function handleListTag(app: AppWithDatabase, command: SlashCommandInstance) {
+	const keys = await app.database.listByOwner(command.user_id)
+	if (keys.length === 0) {
+		return command.respond.message({ text: 'You have no tags defined.', ephemeral: true })
+	}
+	const formatted = keys.map((k) => `- ${k}`).join('\n')
+	return command.respond.message({ text: `Your tags:\n${formatted}` })
 }
 
 function parseTagArgs(text: string) {
@@ -173,10 +182,18 @@ export function setupTagCommand(app: AppWithDatabase) {
 		const { action, rest } = parseTagArgs(text)
 
 		if (rest.length === 0) {
+			if (action === 'list') {
+				return handleListTag(app, command)
+			}
+
 			if (typeof action === 'undefined' || action.trim() === '') {
 				return command.respond.message({ text: getUsageText(), ephemeral: true })
 			}
 			return handleGetTag(app, command, action)
+		}
+
+		if (action === 'list') {
+			return command.respond.message({ text: getUsageText(), ephemeral: true })
 		}
 
 		if (action === 'create') {

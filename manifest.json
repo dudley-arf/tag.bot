@@ -11,7 +11,7 @@
             {
                 "command": "/t",
                 "description": "Create a new tag",
-                "usage_hint": "/t [create | rm | remove | edit | info]? <key> <value>?",
+                "usage_hint": "/t [[create | rm | remove | edit | info]? <key> <value>? | list]",
                 "should_escape": true
             }
         ]
