@@ -20,18 +20,30 @@ function checkBlacklist(content: string) {
 	return blacklistPatterns.some((pattern) => pattern.test(content))
 }
 
-function resolveVariable(name: string): string {
+function resolveVariable(name: string, command: SlashCommandInstance): string {
 	if (name === 'DATE') {
 		const timestamp = Math.floor(Date.now() / 1000)
 		const fallback = new Date().toISOString()
 		const tokenString = '{date_num} {time_secs}'
 		return `<!date^${timestamp}^${tokenString}|${fallback}>`
 	}
+	if (name === 'USER_ID') {
+		return command.user_id ?? ''
+	}
+	if (name === 'USER_PING') {
+		return command.user_id ? `<@${command.user_id}>` : ''
+	}
+	if (name === 'CHANNEL_ID') {
+		return command.channel_id ?? ''
+	}
+	if (name === 'CHANNEL_MENTION') {
+		return command.channel_id ? `<#${command.channel_id}>` : ''
+	}
 	return `{{${name}}}`
 }
 
-function resolveVariables(content: string): string {
-	return content.replace(/\{\{(\w+)\}\}/g, (match, name) => resolveVariable(name))
+function resolveVariables(content: string, command: SlashCommandInstance): string {
+	return content.replace(/\{\{(\w+)\}\}/g, (match, name) => resolveVariable(name, command))
 }
 
 function getUsageText() {
@@ -68,7 +80,7 @@ async function handleGetTag(app: AppWithDatabase, command: SlashCommandInstance,
 		return command.respond.message({ text: `Not found: ${key}` })
 	}
 
-	const resolvedValue = resolveVariables(entry.value)
+	const resolvedValue = resolveVariables(entry.value, command)
 	return command.respond.message({ blocks: blocks(section(mrkdwn(resolvedValue))) })
 }
 
