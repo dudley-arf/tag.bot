@@ -4,7 +4,7 @@ import type { SlashCommandInstance } from 'slack.ts'
 
 
 function getUsageText() {
-	return 'usage: `/t <key>` to read, `/t create <key> <value>` to create, `/t rm <key>` to remove. examples: `/t test`, `/t create test hello world`, `/t rm test`'
+	return 'usage: `/t <key>` to read, `/t create <key> <value>` to create, `/t edit <key> <value>` to edit, `/t rm <key>` to remove. examples: `/t test`, `/t create test hello world`, `/t edit test hello again`, `/t rm test`'
 }
 
 function parseTagArgs(text: string) {
@@ -12,6 +12,20 @@ function parseTagArgs(text: string) {
 	const [action, ...rest] = trimmed.split(' ')
 	return { action, rest }
 }
+
+async function canChangeTag(app: AppWithDatabase, userId: string | undefined, key: string) {
+	if (!userId || !key.trim()) {
+		return false
+	}
+
+	if (userId === process.env.BOT_OWNER_USER_ID) {
+		return true
+	}
+
+	const entry = await app.database.get(key)
+	return entry?.owner === userId
+}
+
 
 async function handleGetTag(app: AppWithDatabase, command: SlashCommandInstance, key: string) {
 	if (!key.trim()) {
@@ -36,6 +50,28 @@ async function handleCreateTag(app: AppWithDatabase, command: SlashCommandInstan
 	return command.respond.message({ text: `Created ${key}=${value}` })
 }
 
+
+async function handleEditTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
+	const key = rest[0]
+	const value = rest.slice(1).join(' ')
+
+	if (!key?.trim() || !value.trim()) {
+		return command.respond.message({ text: 'usage: `/t edit <key> <value>`', ephemeral: true })
+	}
+
+	const entry = await app.database.get(key)
+	if (!entry) {
+		return command.respond.message({ text: `Not found: ${key}`, ephemeral: true })
+	}
+
+	if (!(await canChangeTag(app, command.user_id, key))) {
+		return command.respond.message({ text: 'Only the bot owner or the tag creator can edit tags', ephemeral: true })
+	}
+
+	await app.database.set(key, value, entry.owner)
+	return command.respond.message({ text: `Edited ${key}=${value}` })
+}
+
 async function handleRemoveTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
 
 	const key = rest[0]
@@ -43,11 +79,7 @@ async function handleRemoveTag(app: AppWithDatabase, command: SlashCommandInstan
 		return command.respond.message({ text: 'usage: `/t rm <key>`', ephemeral: true })
 	}
 
-	const entry = await app.database.get(key)
-	const isBotOwner = command.user_id === process.env.BOT_OWNER_USER_ID
-	const isTagOwner = entry?.owner === command.user_id
-
-	if (!isBotOwner && !isTagOwner) {
+	if (!(await canChangeTag(app, command.user_id, key))) {
 		return command.respond.message({ text: 'Only the bot owner or the tag creator can remove tags', ephemeral: true })
 	}
 
@@ -73,6 +105,10 @@ export function setupTagCommand(app: AppWithDatabase) {
 
 		if (action === 'create') {
 			return handleCreateTag(app, command, rest)
+		}
+
+		if (action === 'edit') {
+			return handleEditTag(app, command, rest)
 		}
 
 		if (action === 'rm' || action === 'remove') {
