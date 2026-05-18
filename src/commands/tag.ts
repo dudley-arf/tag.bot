@@ -1,5 +1,5 @@
 import type { AppWithDatabase } from '../app.ts'
-import { blocks, mrkdwn, section, type SlashCommandInstance } from 'slack.ts'
+import { blocks, mrkdwn, section, input, plainTextInput, type SlashCommandInstance } from 'slack.ts'
 import Fuse from 'fuse.js'
 import {type FuseResult} from 'fuse.js';
 
@@ -98,10 +98,30 @@ async function handleGetTag(app: AppWithDatabase, command: SlashCommandInstance,
 
 async function handleCreateTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
 	const key = rest[0]
-	const value = rest.slice(1).join(' ')
+	let value = rest.slice(1).join(' ')
 
-	if (!key?.trim() || !value.trim()) {
+	if (!key?.trim()) {
 		return command.respond.message({ text: 'usage: `/t create <key> <value>`', ephemeral: true })
+	}
+
+	if (!value.trim()) {
+		const modal = await command.respond.modal({
+			type: 'modal',
+			callback_id: 'tag_value',
+			private_metadata: key,
+			title: { type: 'plain_text', text: 'Create Tag' },
+			submit: { type: 'plain_text', text: 'Create' },
+			blocks: blocks(
+				section('Please enter your tag value below.'),
+				input(plainTextInput().id('value')).id('value').label('Tag Value'),
+			),
+		})
+		const submission = await modal.wait.timeout(300_000).submit()
+		const submittedValue = submission.values?.value?.value?.value ?? ''
+		if (!submittedValue.trim()) {
+			return command.respond.message({ text: 'Tag value cannot be empty.', ephemeral: true })
+		}
+		value = submittedValue
 	}
 
 	if (reservedKeywords.includes(key)) {
@@ -119,9 +139,9 @@ async function handleCreateTag(app: AppWithDatabase, command: SlashCommandInstan
 
 async function handleEditTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
 	const key = rest[0]
-	const value = rest.slice(1).join(' ')
+	let value = rest.slice(1).join(' ')
 
-	if (!key?.trim() || !value.trim()) {
+	if (!key?.trim()) {
 		return command.respond.message({ text: 'usage: `/t edit <key> <value>`', ephemeral: true })
 	}
 
@@ -132,6 +152,26 @@ async function handleEditTag(app: AppWithDatabase, command: SlashCommandInstance
 
 	if (!(await canChangeTag(app, command.user_id, key))) {
 		return command.respond.message({ text: 'Only the bot owner or the tag creator can edit tags', ephemeral: true })
+	}
+
+	if (!value.trim()) {
+		const modal = await command.respond.modal({
+			type: 'modal',
+			callback_id: 'tag_value',
+			private_metadata: key,
+			title: { type: 'plain_text', text: 'Edit Tag' },
+			submit: { type: 'plain_text', text: 'Save' },
+			blocks: blocks(
+				section('Please edit the tag value below.'),
+				input(plainTextInput().id('value').default(entry.value)).id('value').label('Tag Value'),
+			),
+		})
+		const submission = await modal.wait.timeout(300_000).submit()
+		const submittedValue = submission.values?.value?.value?.value ?? ''
+		if (!submittedValue.trim()) {
+			return command.respond.message({ text: 'Tag value cannot be empty.', ephemeral: true })
+		}
+		value = submittedValue
 	}
 
 	if (checkBlacklist(value)) {
@@ -218,6 +258,7 @@ async function handleFindTag(app: AppWithDatabase, command: SlashCommandInstance
 }
 
 export function setupTagCommand(app: AppWithDatabase) {
+
 	app.on('/t', async (command) => {
 		const text = (command.text || '').trim()
 		if (!text) {
