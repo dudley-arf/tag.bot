@@ -4,6 +4,21 @@ import type { SlashCommandInstance } from 'slack.ts'
 
 
 const reservedKeywords = ['create', 'edit', 'rm', 'remove']
+const blacklistWords: string[] = []
+const blacklistPatterns: RegExp[] = [/<!channel(\|[^>\|\r\n]*)?>/i, /<!here(\|[^>\|\r\n]*)?>/i]
+
+function checkBlacklist(content: string) {
+	const normalized = content.trim()
+	if (!normalized) {
+		return false
+	}
+
+	if (blacklistWords.some((word) => normalized.toLowerCase().includes(word))) {
+		return true
+	}
+
+	return blacklistPatterns.some((pattern) => pattern.test(content))
+}
 
 function getUsageText() {
 	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove'
@@ -52,6 +67,10 @@ async function handleCreateTag(app: AppWithDatabase, command: SlashCommandInstan
 		return command.respond.message({ text: 'That key is reserved and cannot be created', ephemeral: true })
 	}
 
+	if (checkBlacklist(value)) {
+		return command.respond.message({ text: 'That tag value contains a blocked word or pattern', ephemeral: true })
+	}
+
 	await app.database.set(key, value, command.user_id!)
 	return command.respond.message({ text: `Created ${key}=${value}` })
 }
@@ -72,6 +91,10 @@ async function handleEditTag(app: AppWithDatabase, command: SlashCommandInstance
 
 	if (!(await canChangeTag(app, command.user_id, key))) {
 		return command.respond.message({ text: 'Only the bot owner or the tag creator can edit tags', ephemeral: true })
+	}
+
+	if (checkBlacklist(value)) {
+		return command.respond.message({ text: 'That tag value contains a blocked word or pattern', ephemeral: true })
 	}
 
 	await app.database.set(key, value, entry.owner)
