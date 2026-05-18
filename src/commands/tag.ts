@@ -32,7 +32,7 @@ function resolveVariables(content: string): string {
 }
 
 function getUsageText() {
-	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove'
+	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove\n`/t info <key>` to show creator and raw content'
 }
 
 function parseTagArgs(text: string) {
@@ -132,6 +132,24 @@ async function handleRemoveTag(app: AppWithDatabase, command: SlashCommandInstan
 	return command.respond.message({ text: `Removed ${key}` })
 }
 
+async function handleInfoTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
+	const key = rest[0]
+	if (!key?.trim()) {
+		return command.respond.message({ text: 'usage: `/t info <key>`', ephemeral: true })
+	}
+
+	const entry = await app.database.get(key)
+	if (!entry) {
+		return command.respond.message({ text: `Not found: ${key}`, ephemeral: true })
+	}
+
+	const creator = entry.owner || 'unknown'
+	const raw = entry.value
+	return command.respond.message({
+		text: `Tag: ${key}\nCreator: ${creator}\nRaw:\n\`\`\`\n${raw}\n\`\`\``,
+	})
+}
+
 export function setupTagCommand(app: AppWithDatabase) {
 	app.on('/t', async (command) => {
 		const text = (command.text || '').trim()
@@ -158,6 +176,10 @@ export function setupTagCommand(app: AppWithDatabase) {
 
 		if (action === 'rm' || action === 'remove') {
 			return handleRemoveTag(app, command, rest)
+		}
+
+		if (action === 'info') {
+			return handleInfoTag(app, command, rest)
 		}
 
 		return command.respond.message({ text: getUsageText(), ephemeral: true })
