@@ -37,13 +37,18 @@ async function handleCreateTag(app: AppWithDatabase, command: SlashCommandInstan
 }
 
 async function handleRemoveTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
-	if (command.user_id !== process.env.BOT_OWNER_USER_ID) {
-		return command.respond.message({ text: 'Only the bot owner can remove tags', ephemeral: true })
-	}
 
 	const key = rest[0]
 	if (!key?.trim()) {
 		return command.respond.message({ text: 'usage: `/t rm <key>`', ephemeral: true })
+	}
+
+	const entry = await app.database.get(key)
+	const isBotOwner = command.user_id === process.env.BOT_OWNER_USER_ID
+	const isTagOwner = entry?.owner === command.user_id
+
+	if (!isBotOwner && !isTagOwner) {
+		return command.respond.message({ text: 'Only the bot owner or the tag creator can remove tags', ephemeral: true })
 	}
 
 	await app.database.delete(key)
