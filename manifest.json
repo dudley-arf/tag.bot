@@ -3,6 +3,11 @@
         "name": "Tag Bot"
     },
     "features": {
+        "app_home": {
+            "home_tab_enabled": true,
+            "messages_tab_enabled": false,
+            "messages_tab_read_only_enabled": true
+        },
         "bot_user": {
             "display_name": "Tag Bot",
             "always_online": false
@@ -11,7 +16,7 @@
             {
                 "command": "/t",
                 "description": "Create a new tag",
-                "usage_hint": "/t [[create | edit] <key> <value>? | [rm | remove | info | find] <key> | list]",
+                "usage_hint": "/t [[create | rm | remove | edit | info]? <key> <value>? | list]",
                 "should_escape": true
             }
         ]
@@ -28,6 +33,11 @@
         "pkce_enabled": false
     },
     "settings": {
+        "event_subscriptions": {
+            "bot_events": [
+                "app_home_opened"
+            ]
+        },
         "interactivity": {
             "is_enabled": true
         },

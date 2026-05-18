@@ -261,6 +261,7 @@ export function setupTagCommand(app: AppWithDatabase) {
 
 	app.on('/t', async (command) => {
 		const text = (command.text || '').trim()
+		console.log('Received /t command with text:', text)
 		if (!text) {
 			return command.respond.message({ text: getUsageText(), ephemeral: true })
 		}
