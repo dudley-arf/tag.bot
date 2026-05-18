@@ -4,7 +4,7 @@ import type { SlashCommandInstance } from 'slack.ts'
 
 
 function getUsageText() {
-	return 'usage: `/t <key>` to read, `/t create <key> <value>` to create, `/t edit <key> <value>` to edit, `/t rm <key>` to remove. examples: `/t test`, `/t create test hello world`, `/t edit test hello again`, `/t rm test`'
+	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove'
 }
 
 function parseTagArgs(text: string) {
