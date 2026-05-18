@@ -1,4 +1,4 @@
-import { App, blocks, R, richText, section } from 'slack.ts'
+import { App, blocks, section, divider, button, input, plainTextInput, R } from 'slack.ts'
 import { JsonKeyValueDatabase, type KeyValueDatabase } from './db/database.ts'
 
 export interface AppWithDatabase extends App {
@@ -24,18 +24,46 @@ export function createApp() {
 		const totalAccesses = userTags.reduce((sum, [, entry]) => sum + (entry.count ?? 0), 0)
 
 		const tagBlocks = userTags.map(([key, entry]) =>
-			richText(R.section(`- ${key} (${entry.count ?? 0})`)),
+			section(`*${key}*\nCalled count: ${entry.count ?? 0}`)
+				.id(key)
+				.accessory(button('Edit').id('edit_tag_from_home'))
 		)
 
 		await event.respond({
 			type: 'home',
 			blocks: blocks(
-				richText(
-					R.section(`You have ${totalTags} personal tags. Total accesses: ${totalAccesses}.`),
-				),
+				section(`You have ${totalTags} personal tags. Total accesses: ${totalAccesses}.`),
+				divider(),
 				...tagBlocks,
 			),
 		})
+	})
+
+	app.on('action.edit_tag_from_home', async (action) => {
+		const key = action.block_id
+		if (!key) return
+		const entry = await app.database.get(key)
+		if (!entry) return
+
+		const modal = await action.respond.modal({
+			type: 'modal',
+			callback_id: 'tag_value',
+			private_metadata: key,
+			title: { type: 'plain_text', text: 'Edit Tag' },
+			submit: { type: 'plain_text', text: 'Save' },
+			blocks: blocks(
+				section('Please edit the tag value below.'),
+				input(plainTextInput().id('value').default(entry.value)).id('value').label('Tag Value'),
+			),
+		})
+
+		const submission = await modal.wait.timeout(300_000).submit()
+		const submittedValue = submission.values?.value?.value?.value ?? ''
+		if (!submittedValue.trim()) {
+			return
+		}
+
+		await app.database.set(key, submittedValue, entry.owner)
 	})
 
 	return app
