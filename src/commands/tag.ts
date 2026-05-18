@@ -22,7 +22,10 @@ function checkBlacklist(content: string) {
 
 function resolveVariable(name: string): string {
 	if (name === 'DATE') {
-		return new Date().toISOString()
+		const timestamp = Math.floor(Date.now() / 1000)
+		const fallback = new Date().toISOString()
+		const tokenString = '{date_num} {time_secs}'
+		return `<!date^${timestamp}^${tokenString}^^|${fallback}>`
 	}
 	return `{{${name}}}`
 }
