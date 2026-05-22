@@ -2,6 +2,7 @@ import type { AppWithDatabase } from '../app.ts'
 import { blocks, mrkdwn, section, input, plainTextInput, type SlashCommandInstance } from 'slack.ts'
 import Fuse from 'fuse.js'
 import {type FuseResult} from 'fuse.js';
+import { catchSlackTimeout } from '../utils.ts';
 
 
 
@@ -259,7 +260,7 @@ async function handleFindTag(app: AppWithDatabase, command: SlashCommandInstance
 
 export function setupTagCommand(app: AppWithDatabase) {
 
-	app.on('/t', async (command) => {
+	app.on('/t', catchSlackTimeout(async (command) => {
 		const text = (command.text || '').trim()
 		console.log('Received /t command with text:', text)
 		if (!text) {
@@ -304,5 +305,5 @@ export function setupTagCommand(app: AppWithDatabase) {
 		}
 
 		return command.respond.message({ text: getUsageText(), ephemeral: true })
-	})
+	}))
 }

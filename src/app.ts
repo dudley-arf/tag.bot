@@ -1,5 +1,6 @@
-import { App, blocks, section, divider, button, input, plainTextInput, actions, R } from 'slack.ts'
+import { App, blocks, section, divider, button, input, plainTextInput, actions } from 'slack.ts'
 import { JsonKeyValueDatabase, type KeyValueDatabase } from './db/database.ts'
+import { catchSlackTimeout } from './utils.ts'
 
 export interface AppWithDatabase extends App {
 	database: KeyValueDatabase
@@ -15,7 +16,7 @@ export function createApp() {
 		filePath: process.env.KV_DB_FILE ?? './data/kv.json',
 	})
 
-	app.on('home', async (event) => {
+	app.on('home', catchSlackTimeout(async (event) => {
 		console.log('Home opened by user:', event.user)
 		const all = await app.database.getAll()
 		const userId = event.user
@@ -38,9 +39,9 @@ export function createApp() {
 				...tagBlocks,
 			),
 		})
-	})
+	}))
 
-	app.on('action.edit_tag_from_home', async (action) => {
+	app.on('action.edit_tag_from_home', catchSlackTimeout(async (action) => {
 		const key = action.block_id
 		if (!key) return
 		const entry = await app.database.get(key)
@@ -65,9 +66,9 @@ export function createApp() {
 		}
 
 		await app.database.set(key, submittedValue, entry.owner)
-	})
+	}))
 
-	app.on('action.add_tag_from_home', async (action) => {
+	app.on('action.add_tag_from_home', catchSlackTimeout(async (action) => {
 		const modal = await action.respond.modal({
 			type: 'modal',
 			callback_id: 'create_tag_home',
@@ -89,7 +90,7 @@ export function createApp() {
 
 		const userId = action.event.user.id
 		await app.database.set(submittedKey, submittedValue, userId)
-	})
+	}))
 
 	return app
 }
