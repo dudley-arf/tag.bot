@@ -13,11 +13,15 @@ async function getAppHomeView(app: AppWithDatabase, userId: string) : Promise<Ho
 	const totalTags = userTags.length
 	const totalAccesses = userTags.reduce((sum, [, entry]) => sum + (entry.count ?? 0), 0)
 
-	const tagBlocks = userTags.map(([key, entry]) =>
-		section(`*${key}*\nCalled count: ${entry.count ?? 0}`)
-			.id(key)
-			.accessory(button('Edit').id('edit_tag_from_home'))
-	)
+	const tagBlocks = userTags.flatMap(([key, entry]) => [
+		section(`*${key}*\nCalled count: ${entry.count ?? 0}`),
+		actions(
+			button('Edit').id('edit_tag_from_home'),
+			button('Delete')
+				.id('delete_tag_from_home')
+				.style('danger')
+		).id(key)
+	])
 
 	return {
 		type: 'home',
@@ -101,6 +105,19 @@ export function createApp() {
 		await app.request('views.publish', {
 			user_id: userId,
 			view: await getAppHomeView(app, userId)
+		})
+	}))
+
+	app.on('action.delete_tag_from_home', catchSlackTimeout(async (action) => {
+		const key = action.block_id
+		if (!key) return
+		const entry = await app.database.get(key)
+		if (!entry) return
+
+		await app.database.delete(key)
+		await app.request('views.publish', {
+			user_id: entry.owner,
+			view: await getAppHomeView(app, entry.owner)
 		})
 	}))
 
