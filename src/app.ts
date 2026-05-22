@@ -1,9 +1,33 @@
 import { App, blocks, section, divider, button, input, plainTextInput, actions } from 'slack.ts'
 import { JsonKeyValueDatabase, type KeyValueDatabase } from './db/database.ts'
 import { catchSlackTimeout } from './utils.ts'
+import { type HomeView } from "@slack/types";
 
 export interface AppWithDatabase extends App {
 	database: KeyValueDatabase
+}
+
+async function getAppHomeView(app: AppWithDatabase, userId: string) : Promise<HomeView> {
+	const all = await app.database.getAll()
+	const userTags = Object.entries(all).filter(([, entry]) => entry.owner === userId)
+	const totalTags = userTags.length
+	const totalAccesses = userTags.reduce((sum, [, entry]) => sum + (entry.count ?? 0), 0)
+
+	const tagBlocks = userTags.map(([key, entry]) =>
+		section(`*${key}*\nCalled count: ${entry.count ?? 0}`)
+			.id(key)
+			.accessory(button('Edit').id('edit_tag_from_home'))
+	)
+
+	return {
+		type: 'home',
+		blocks: blocks(
+			section(`You have ${totalTags} personal tags. Total accesses: ${totalAccesses}.`),
+			actions(button('Add Tag').id('add_tag_from_home')),
+			divider(),
+			...tagBlocks,
+		),
+	}
 }
 
 export function createApp() {
@@ -18,27 +42,7 @@ export function createApp() {
 
 	app.on('home', catchSlackTimeout(async (event) => {
 		console.log('Home opened by user:', event.user)
-		const all = await app.database.getAll()
-		const userId = event.user
-		const userTags = Object.entries(all).filter(([, entry]) => entry.owner === userId)
-		const totalTags = userTags.length
-		const totalAccesses = userTags.reduce((sum, [, entry]) => sum + (entry.count ?? 0), 0)
-
-		const tagBlocks = userTags.map(([key, entry]) =>
-			section(`*${key}*\nCalled count: ${entry.count ?? 0}`)
-				.id(key)
-				.accessory(button('Edit').id('edit_tag_from_home'))
-		)
-
-		await event.respond({
-			type: 'home',
-			blocks: blocks(
-				section(`You have ${totalTags} personal tags. Total accesses: ${totalAccesses}.`),
-				actions(button('Add Tag').id('add_tag_from_home')),
-				divider(),
-				...tagBlocks,
-			),
-		})
+		await event.respond(await getAppHomeView(app, event.user))
 	}))
 
 	app.on('action.edit_tag_from_home', catchSlackTimeout(async (action) => {
@@ -66,6 +70,10 @@ export function createApp() {
 		}
 
 		await app.database.set(key, submittedValue, entry.owner)
+		await app.request('views.publish', {
+			user_id: entry.owner,
+			view: await getAppHomeView(app, entry.owner)
+		})
 	}))
 
 	app.on('action.add_tag_from_home', catchSlackTimeout(async (action) => {
@@ -90,6 +98,10 @@ export function createApp() {
 
 		const userId = action.event.user.id
 		await app.database.set(submittedKey, submittedValue, userId)
+		await app.request('views.publish', {
+			user_id: userId,
+			view: await getAppHomeView(app, userId)
+		})
 	}))
 
 	return app
