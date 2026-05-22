@@ -14,13 +14,9 @@ async function getAppHomeView(app: AppWithDatabase, userId: string) : Promise<Ho
 	const totalAccesses = userTags.reduce((sum, [, entry]) => sum + (entry.count ?? 0), 0)
 
 	const tagBlocks = userTags.flatMap(([key, entry]) => [
-		section(`*${key}*\nCalled count: ${entry.count ?? 0}`),
-		actions(
-			button('Edit').id('edit_tag_from_home'),
-			button('Delete')
-				.id('delete_tag_from_home')
-				.style('danger')
-		).id(key)
+		section(`*${key}*\nCalled count: ${entry.count ?? 0}`)
+			.id(key)
+			.accessory(button('Edit').id('edit_tag_from_home'))
 	])
 
 	return {
