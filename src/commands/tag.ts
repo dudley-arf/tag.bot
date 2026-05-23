@@ -276,6 +276,15 @@ async function handleReminderTag(app: AppWithDatabase, command: SlashCommandInst
 	}
 
 	await app.database.setReminder(key, command.user_id!, timestamp)
+
+	try {
+		if (app.reminderManager && typeof app.reminderManager.addReminder === 'function') {
+			await app.reminderManager.addReminder(key, command.user_id!, timestamp, false)
+		}
+	} catch (e) {
+		console.error('Failed to register reminder with manager', e)
+	}
+
 	return command.respond.message({ text: `Reminder set for *${key}* at ${new Date(timestamp * 1000).toISOString()}` })
 }
 

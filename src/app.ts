@@ -2,9 +2,11 @@ import { App, blocks, section, divider, button, input, plainTextInput, actions }
 import { JsonKeyValueDatabase, type KeyValueDatabase } from './db/database.ts'
 import { catchSlackTimeout } from './utils.ts'
 import { type HomeView } from "@slack/types";
+import { type IReminderManager, createReminderManager } from './reminders.ts'
 
 export interface AppWithDatabase extends App {
 	database: KeyValueDatabase
+	reminderManager?: IReminderManager
 }
 
 async function getAppHomeView(app: AppWithDatabase, userId: string) : Promise<HomeView> {
@@ -122,5 +124,8 @@ export function createApp() {
 
 export async function startApp(app: AppWithDatabase) {
 	await app.database.initialize()
+	app.reminderManager = createReminderManager(app)
+	await app.reminderManager.loadFromDatabase()
+
 	await app.start()
 }
