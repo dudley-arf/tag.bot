@@ -1,6 +1,7 @@
 import { blocks, mrkdwn, section } from 'slack.ts'
 import type { AppWithDatabase } from './app.ts'
 import type { ReminderEntry } from './db/database.ts'
+import { resolveVariables } from './resolver.ts'
 
 export interface IReminderManager {
     loadFromDatabase(): Promise<void>
@@ -9,31 +10,6 @@ export interface IReminderManager {
     getPending(): Record<string, ReminderEntry[]>
 }
 
-function resolveVariable(name: string, command: {user_id: string, channel_id: string}): string {
-    if (name === 'DATE') {
-        const timestamp = Math.floor(Date.now() / 1000)
-        const fallback = new Date().toISOString()
-        const tokenString = '{date_num} {time_secs}'
-        return `<!date^${timestamp}^${tokenString}|${fallback}>`
-    }
-    if (name === 'USER_ID') {
-        return command.user_id ?? ''
-    }
-    if (name === 'USER_PING') {
-        return command.user_id ? `<@${command.user_id}>` : ''
-    }
-    if (name === 'CHANNEL_ID') {
-        return command.channel_id ?? ''
-    }
-    if (name === 'CHANNEL_MENTION') {
-        return command.channel_id ? `<#${command.channel_id}>` : ''
-    }
-    return `{{${name}}}`
-}
-
-function resolveVariables(content: string, command: {user_id: string, channel_id: string}): string {
-    return content.replace(/\{\{(\w+)\}\}/g, (match, name) => resolveVariable(name, command))
-}
 
 export function createReminderManager(app: AppWithDatabase): IReminderManager {
     return new ReminderManager(app)

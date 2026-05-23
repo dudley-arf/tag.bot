@@ -1,6 +1,6 @@
 import type { AppWithDatabase } from '../app.ts'
 import { blocks, mrkdwn, section, input, plainTextInput, type SlashCommandInstance } from 'slack.ts'
-import * as chrono from 'chrono-node'
+import { parseReminderTime } from '../reminderResolver.ts'
 import Fuse from 'fuse.js'
 import {type FuseResult} from 'fuse.js';
 import { catchSlackTimeout } from '../utils.ts';
@@ -24,31 +24,7 @@ function checkBlacklist(content: string) {
 	return blacklistPatterns.some((pattern) => pattern.test(content))
 }
 
-function resolveVariable(name: string, command: SlashCommandInstance): string {
-	if (name === 'DATE') {
-		const timestamp = Math.floor(Date.now() / 1000)
-		const fallback = new Date().toISOString()
-		const tokenString = '{date_num} {time_secs}'
-		return `<!date^${timestamp}^${tokenString}|${fallback}>`
-	}
-	if (name === 'USER_ID') {
-		return command.user_id ?? ''
-	}
-	if (name === 'USER_PING') {
-		return command.user_id ? `<@${command.user_id}>` : ''
-	}
-	if (name === 'CHANNEL_ID') {
-		return command.channel_id ?? ''
-	}
-	if (name === 'CHANNEL_MENTION') {
-		return command.channel_id ? `<#${command.channel_id}>` : ''
-	}
-	return `{{${name}}}`
-}
-
-function resolveVariables(content: string, command: SlashCommandInstance): string {
-	return content.replace(/\{\{(\w+)\}\}/g, (match, name) => resolveVariable(name, command))
-}
+import { resolveVariables } from '../resolver.ts'
 
 function getUsageText() {
 	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove\n`/t info <key>` to show creator and raw content\n`/t list` to list all your tags\n`/t find <query>` to search tags\n`/t reminder <key> <readable_time>` to set a reminder for a tag'
@@ -265,11 +241,10 @@ async function handleReminderTag(app: AppWithDatabase, command: SlashCommandInst
 	if (!key?.trim() || !timeString) {
 		return command.respond.message({ text: 'usage: `/t reminder <key> <readable_time>`', ephemeral: true })
 	}
-	const parsedDate = chrono.parseDate(timeString, new Date(), { forwardDate: true })
-	if (!parsedDate) {
+	const timestamp = parseReminderTime(timeString)
+	if (timestamp === null) {
 		return command.respond.message({ text: `Could not understand time "${timeString}". Please provide a recognizable date or relative expression.`, ephemeral: true })
 	}
-	const timestamp = Math.floor(parsedDate.getTime() / 1000)
 	const nowSec = Math.floor(Date.now() / 1000)
 	if (timestamp <= nowSec) {
 		return command.respond.message({ text: 'The specified time is in the past. Please provide a future time.', ephemeral: true })
