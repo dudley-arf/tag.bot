@@ -1,5 +1,6 @@
 import type { AppWithDatabase } from '../app.ts'
 import { blocks, mrkdwn, section, input, plainTextInput, type SlashCommandInstance } from 'slack.ts'
+import * as chrono from 'chrono-node'
 import Fuse from 'fuse.js'
 import {type FuseResult} from 'fuse.js';
 import { catchSlackTimeout } from '../utils.ts';
@@ -50,7 +51,7 @@ function resolveVariables(content: string, command: SlashCommandInstance): strin
 }
 
 function getUsageText() {
-	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove\n`/t info <key>` to show creator and raw content\n`/t list` to list all your tags\n`/t find <query>` to search tags'
+	return 'Usage: `/t <key>` to read\n`/t create <key> <value>` to create\n`/t edit <key> <value>` to edit\n`/t rm <key>` to remove\n`/t info <key>` to show creator and raw content\n`/t list` to list all your tags\n`/t find <query>` to search tags\n`/t reminder <key> <readable_time>` to set a reminder for a tag'
 }
 
 async function handleListTag(app: AppWithDatabase, command: SlashCommandInstance) {
@@ -258,6 +259,26 @@ async function handleFindTag(app: AppWithDatabase, command: SlashCommandInstance
 	return command.respond.message({ text: `*Search results:*\n${lines.join('\n')}` })
 }
 
+async function handleReminderTag(app: AppWithDatabase, command: SlashCommandInstance, rest: string[]) {
+	const key = rest[0]
+	const timeString = rest.slice(1).join(' ').trim()
+	if (!key?.trim() || !timeString) {
+		return command.respond.message({ text: 'usage: `/t reminder <key> <readable_time>`', ephemeral: true })
+	}
+	const parsedDate = chrono.parseDate(timeString, new Date(), { forwardDate: true })
+	if (!parsedDate) {
+		return command.respond.message({ text: `Could not understand time "${timeString}". Please provide a recognizable date or relative expression.`, ephemeral: true })
+	}
+	const timestamp = Math.floor(parsedDate.getTime() / 1000)
+	const nowSec = Math.floor(Date.now() / 1000)
+	if (timestamp <= nowSec) {
+		return command.respond.message({ text: 'The specified time is in the past. Please provide a future time.', ephemeral: true })
+	}
+
+	await app.database.setReminder(key, command.user_id!, timestamp)
+	return command.respond.message({ text: `Reminder set for *${key}* at ${new Date(timestamp * 1000).toISOString()}` })
+}
+
 export function setupTagCommand(app: AppWithDatabase) {
 
 	app.on('/t', catchSlackTimeout(async (command) => {
@@ -302,6 +323,10 @@ export function setupTagCommand(app: AppWithDatabase) {
 
 		if (action === 'info') {
 			return handleInfoTag(app, command, rest)
+		}
+
+		if (action === 'reminder') {
+			return handleReminderTag(app, command, rest)
 		}
 
 		return command.respond.message({ text: getUsageText(), ephemeral: true })
