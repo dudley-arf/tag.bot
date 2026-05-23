@@ -37,7 +37,7 @@ When creating a tag, use the `{{VARIABLE_NAME}}` format to inject contextual met
 /t create test test2
 /t create ping-me Hi {{USER_PING}}!
 
-/t test2
+/t test
 /t reminder ping-me in 45 minutes
 
 ```
