@@ -16,7 +16,7 @@
             {
                 "command": "/t",
                 "description": "Create a new tag",
-                "usage_hint": "/t [[create | rm | remove | edit | info]? <key> <value>? | list]",
+                "usage_hint": "/t [[create | rm | remove | edit | info]? <key> <value>? | list | reminder <key> <readable_time>]",
                 "should_escape": true
             }
         ]
@@ -24,10 +24,11 @@
     "oauth_config": {
         "scopes": {
             "bot": [
+                "im:write",
                 "chat:write",
+                "commands",
                 "users.profile:read",
-                "users:read",
-                "commands"
+                "users:read"
             ]
         },
         "pkce_enabled": false
