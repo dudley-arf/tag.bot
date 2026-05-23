@@ -44,6 +44,9 @@ When creating a tag, use the `{{VARIABLE_NAME}}` format to inject contextual met
 
 <img width="1030" height="338" alt="image" src="https://github.com/user-attachments/assets/b4365bd2-ed29-4e7e-8fbc-e0b782a43eaf" />
 
+<img width="1036" height="70" alt="image" src="https://github.com/user-attachments/assets/82cabf46-a082-4b0b-bfc1-1f5658a32dde" />
+
+
 
 ---
 
