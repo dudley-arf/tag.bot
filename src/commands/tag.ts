@@ -7,7 +7,7 @@ import { catchSlackTimeout } from '../utils.ts';
 
 
 
-const reservedKeywords = ['create', 'edit', 'rm', 'remove']
+const reservedKeywords = ['create', 'edit', 'rm', 'remove', 'info', 'reminder', 'find']
 const blacklistWords: string[] = []
 const blacklistPatterns: RegExp[] = [/<!channel(\|[^>\|\r\n]*)?>/i, /<!here(\|[^>\|\r\n]*)?>/i]
 
@@ -108,6 +108,11 @@ async function handleCreateTag(app: AppWithDatabase, command: SlashCommandInstan
 
 	if (checkBlacklist(value)) {
 		return command.respond.message({ text: 'That tag value contains a blocked word or pattern', ephemeral: true })
+	}
+
+	const entry = await app.database.get(key)
+	if (entry) {
+		return command.respond.message({ text: `${key} have already been defined`, ephemeral: true })
 	}
 
 	await app.database.set(key, value, command.user_id!)
