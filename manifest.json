@@ -18,6 +18,12 @@
                 "description": "Create a new tag",
                 "usage_hint": "/t [[create | rm | remove | edit | info]? <key> <value>? | list | reminder <key> <readable_time>]",
                 "should_escape": true
+            },
+            {
+                "command": "/tg",
+                "description": "Create a new tag",
+                "usage_hint": "/tg [[create | rm | remove | edit | info]? <key> <value>? | list | reminder <key> <readable_time>]",
+                "should_escape": true
             }
         ]
     },
