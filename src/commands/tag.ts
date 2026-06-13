@@ -319,5 +319,56 @@ export function setupTagCommand(app: AppWithDatabase) {
 		}
 
 		return command.respond.message({ text: getUsageText(), ephemeral: true })
+	}));
+
+	app.on('/tg', catchSlackTimeout(async (command) => {
+		const text = (command.text || '').trim()
+		console.log('Received /t command with text:', text)
+		if (!text) {
+			return command.respond.message({ text: getUsageText(), ephemeral: true })
+		}
+
+		const { action, rest } = parseTagArgs(text)
+
+		if (rest.length === 0) {
+			if (action === 'list') {
+				return handleListTag(app, command)
+			}
+
+			if (typeof action === 'undefined' || action.trim() === '') {
+				return command.respond.message({ text: getUsageText(), ephemeral: true })
+			}
+			return handleGetTag(app, command, action)
+		}
+
+		if (action === 'find') {
+			return handleFindTag(app, command, rest)
+		}
+
+		if (action === 'list') {
+			return command.respond.message({ text: getUsageText(), ephemeral: true })
+		}
+
+		if (action === 'create') {
+			return handleCreateTag(app, command, rest)
+		}
+
+		if (action === 'edit') {
+			return handleEditTag(app, command, rest)
+		}
+
+		if (action === 'rm' || action === 'remove') {
+			return handleRemoveTag(app, command, rest)
+		}
+
+		if (action === 'info') {
+			return handleInfoTag(app, command, rest)
+		}
+
+		if (action === 'reminder') {
+			return handleReminderTag(app, command, rest)
+		}
+
+		return command.respond.message({ text: getUsageText(), ephemeral: true })
 	}))
 }
